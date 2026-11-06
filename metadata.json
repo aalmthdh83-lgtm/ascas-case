@@ -1,0 +1,7 @@
+{
+  "name": "Remix d",
+  "description": "Imported from GitHub: aalmthdh83-lgtm/d",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

